@@ -4,6 +4,11 @@ const PORT = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const dontenv = require("dotenv");
 dontenv.config();
+const cors = require("cors");
+
+app.use(cors());
+app.use(express.json());
+
 
 
 app.get('/', (req, res) => {
@@ -25,6 +30,67 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         await client.connect();
+
+        const db = client.db("studynook")
+        const roomCollection = db.collection("rooms")
+
+        app.post("/rooms", async (req, res) => {
+            try {
+                const roomData = req.body;
+
+                const {
+                    roomName,
+                    description,
+                    image,
+                    floor,
+                    capacity,
+                    hourlyRate,
+                    amenities,
+                } = roomData;
+
+                if (
+                    !roomName ||
+                    !description ||
+                    !image ||
+                    !floor ||
+                    !capacity ||
+                    !hourlyRate
+                ) {
+                    return res.status(400).json({
+                        message: "All fields are required.",
+                    });
+                }
+
+                if (
+                    !Array.isArray(amenities) ||
+                    amenities.length === 0
+                ) {
+                    return res.status(400).json({
+                        message:
+                            "Please select at least one amenity.",
+                    });
+                }
+
+                const result =
+                    await roomCollection.insertOne(roomData);
+
+                res.status(201).json({
+                    success: true,
+                    insertedId: result.insertedId,
+                    message: "Room added successfully.",
+                });
+
+            } catch (error) {
+                console.error(error);
+
+                res.status(500).json({
+                    success: false,
+                    message: "Internal server error.",
+                });
+            }
+        });
+
+
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
