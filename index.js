@@ -30,9 +30,30 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         await client.connect();
+        console.log("Connected to MongoDB");
 
         const db = client.db("studynook")
         const roomCollection = db.collection("rooms")
+
+
+        app.get("/rooms", async (req, res) => {
+            try {
+                const rooms = await roomCollection
+                    .find()
+                    .sort({ createdAt: -1 })
+                    .toArray();
+
+                res.status(200).json(rooms);
+            } catch (error) {
+                console.error(error);
+
+                res.status(500).json({
+                    success: false,
+                    message: "Failed to fetch rooms.",
+                });
+            }
+        });
+
 
         app.post("/rooms", async (req, res) => {
             try {
