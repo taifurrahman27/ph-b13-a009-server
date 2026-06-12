@@ -55,6 +55,24 @@ async function run() {
         });
 
 
+        app.get("/rooms/latest", async (req, res) => {
+            try {
+                const rooms = await roomCollection
+                    .find()
+                    .sort({ createdAt: -1 })
+                    .limit(6)
+                    .toArray();
+
+                res.status(200).json(rooms);
+            } catch (error) {
+                res.status(500).json({
+                    message: "Failed to fetch rooms.",
+                });
+            }
+        });
+
+
+
         app.post("/rooms", async (req, res) => {
             try {
                 const roomData = req.body;
