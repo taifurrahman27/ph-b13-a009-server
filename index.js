@@ -72,6 +72,30 @@ async function run() {
         });
 
 
+        const { ObjectId } = require("mongodb");
+
+        app.get("/rooms/:id", async (req, res) => {
+            try {
+                const id = req.params.id;
+
+                const room = await roomCollection.findOne({
+                    _id: new ObjectId(id),
+                });
+
+                if (!room) {
+                    return res.status(404).send({
+                        message: "Room not found",
+                    });
+                }
+
+                res.send(room);
+            } catch (error) {
+                res.status(500).send({
+                    message: "Failed to fetch room",
+                });
+            }
+        });
+
 
         app.post("/rooms", async (req, res) => {
             try {
