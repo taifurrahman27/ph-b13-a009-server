@@ -154,6 +154,36 @@ async function run() {
         });
 
 
+        app.delete("/rooms/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                const result = await roomCollection.deleteOne({
+                    _id: new ObjectId(id),
+                });
+
+                if (result.deletedCount === 0) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Room not found",
+                    });
+                }
+
+                res.json({
+                    success: true,
+                    message: "Room deleted successfully",
+                });
+            } catch (error) {
+                res.status(500).json({
+                    success: false,
+                    message: "Failed to delete room",
+                });
+            }
+        });
+
+
+
+
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
