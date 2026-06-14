@@ -106,7 +106,7 @@ async function run() {
                     description,
                     image,
                     floor,
-                    capacity,
+                    seatCapacity,
                     hourlyRate,
                     amenities,
                 } = roomData;
@@ -116,7 +116,7 @@ async function run() {
                     !description ||
                     !image ||
                     !floor ||
-                    !capacity ||
+                    !seatCapacity ||
                     !hourlyRate
                 ) {
                     return res.status(400).json({
@@ -149,6 +149,56 @@ async function run() {
                 res.status(500).json({
                     success: false,
                     message: "Internal server error.",
+                });
+            }
+        });
+
+
+
+        app.patch("/rooms/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+                const updatedRoom = req.body;
+
+                const filter = {
+                    _id: new ObjectId(id),
+                };
+
+                const updateDoc = {
+                    $set: {
+                        roomName: updatedRoom.roomName,
+                        image: updatedRoom.image,
+                        description: updatedRoom.description,
+                        floor: updatedRoom.floor,
+                        seatCapacity: updatedRoom.seatCapacity,
+                        hourlyRate: updatedRoom.hourlyRate,
+                        amenities: updatedRoom.amenities,
+                    },
+                };
+
+                const result = await roomCollection.updateOne(
+                    filter,
+                    updateDoc
+                );
+
+                if (result.matchedCount === 0) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Room not found",
+                    });
+                }
+
+                res.status(200).json({
+                    success: true,
+                    message: "Room updated successfully",
+                    modifiedCount: result.modifiedCount,
+                });
+            } catch (error) {
+                console.error(error);
+
+                res.status(500).json({
+                    success: false,
+                    message: "Failed to update room",
                 });
             }
         });
