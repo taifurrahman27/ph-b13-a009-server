@@ -231,6 +231,42 @@ async function run() {
         });
 
 
+        app.get("/bookings/:userId", async (req, res) => {
+            try {
+                const { userId } = req.params;
+
+                if (!ObjectId.isValid(userId)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Invalid user ID",
+                    });
+                }
+
+                const bookings = await bookingCollection
+                    .find({
+                        userId: new ObjectId(userId),
+                    })
+                    .sort({ createdAt: -1 })
+                    .toArray();
+
+                res.status(200).json({
+                    success: true,
+                    count: bookings.length,
+                    data: bookings,
+                });
+
+            } catch (error) {
+                console.error("FETCH BOOKINGS ERROR:", error);
+
+                res.status(500).json({
+                    success: false,
+                    message: "Failed to fetch bookings",
+                });
+            }
+        });
+
+
+
         app.post("/bookings", async (req, res) => {
             try {
                 const {
@@ -363,6 +399,7 @@ async function run() {
                 });
             }
         });
+
 
 
         await client.db("admin").command({ ping: 1 });
