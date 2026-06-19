@@ -267,63 +267,32 @@ async function run() {
 
 
 
+
         app.post("/bookings", async (req, res) => {
             try {
                 const {
-                    roomId,
                     userId,
                     userName,
                     userImage,
+                    roomId,
+                    roomName,
+                    roomImage,
                     bookingDate,
                     startTime,
                     endTime,
                     specialNote
                 } = req.body;
 
-                if (!ObjectId.isValid(roomId) || !ObjectId.isValid(userId)) {
-                    return res.status(400).json({
-                        message: "Invalid room or user ID"
-                    });
-                }
-
                 const startHour = Number(startTime.split(":")[0]);
                 const endHour = Number(endTime.split(":")[0]);
-
-                if (endHour <= startHour) {
-                    return res.status(400).json({
-                        message: "End time must be after start time"
-                    });
-                }
-
-                if (startHour < 8 || endHour > 20) {
-                    return res.status(400).json({
-                        message: "Booking allowed only between 08:00 - 20:00"
-                    });
-                }
-
-                const today = new Date();
-                const selectedDate = new Date(bookingDate);
-
-                today.setHours(0, 0, 0, 0);
-                selectedDate.setHours(0, 0, 0, 0);
-
-                if (selectedDate < today) {
-                    return res.status(400).json({
-                        message: "You cannot book a past date"
-                    });
-                }
 
                 const room = await roomCollection.findOne({
                     _id: new ObjectId(roomId)
                 });
 
                 if (!room) {
-                    return res.status(404).json({
-                        message: "Room not found"
-                    });
+                    return res.status(404).json({ message: "Room not found" });
                 }
-
-                const hourlyRate = room.hourlyRate;
 
                 const conflict = await bookingCollection.findOne({
                     roomId: new ObjectId(roomId),
@@ -339,12 +308,9 @@ async function run() {
 
                 if (conflict) {
                     return res.status(409).json({
-                        message: "This time slot is already booked"
+                        message: "Time slot already booked"
                     });
                 }
-
-                const totalHours = endHour - startHour;
-                const totalCost = totalHours * hourlyRate;
 
                 const booking = {
                     roomId: new ObjectId(roomId),
@@ -353,49 +319,65 @@ async function run() {
                     userName,
                     userImage,
 
-                    bookingDate,
+                    roomName,
+                    roomImage,
 
+                    bookingDate,
                     startTime,
                     endTime,
                     startHour,
                     endHour,
 
-                    hourlyRate,
-                    totalCost,
+                    hourlyRate: room.hourlyRate,
+                    totalCost: (endHour - startHour) * room.hourlyRate,
 
                     specialNote: specialNote || "",
-
                     status: "confirmed",
                     createdAt: new Date()
                 };
 
-                const duplicate = await bookingCollection.findOne({
-                    roomId: new ObjectId(roomId),
-                    userId: new ObjectId(userId),
-                    bookingDate,
-                    startHour,
-                    endHour
-                });
-
-                if (duplicate) {
-                    return res.status(409).json({
-                        message: "You already booked this slot"
-                    });
-                }
                 const result = await bookingCollection.insertOne(booking);
 
                 res.status(201).json({
                     success: true,
-                    message: "Room booked successfully!",
                     bookingId: result.insertedId
                 });
 
-            } catch (error) {
-                console.error("BOOKING ERROR:", error);
-
+            } catch (err) {
                 res.status(500).json({
                     success: false,
-                    message: "Server error while booking"
+                    message: "Server error"
+                });
+            }
+        });
+
+
+        app.patch("/bookings/:id/cancel", async (req, res) => {
+            try {
+                const { id } = req.params;
+
+                const result = await bookingCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: { status: "cancelled" } }
+                );
+
+                if (result.matchedCount === 0) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Booking not found"
+                    });
+                }
+
+                res.json({
+                    success: true,
+                    message: "Booking cancelled"
+                });
+
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({
+                    success: false,
+                    message: "Server error while cancelling"
                 });
             }
         });
