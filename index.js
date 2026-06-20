@@ -5,6 +5,7 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 const dontenv = require("dotenv");
 dontenv.config();
 const cors = require("cors");
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 
 app.use(cors());
 app.use(express.json());
@@ -22,6 +23,45 @@ const client = new MongoClient(uri, {
     }
 });
 
+
+
+const JWKS = createRemoteJWKSet(
+    new URL("http://localhost:3000/api/auth/jwks")
+);
+
+const verifyToken = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader) {
+            return res.status(401).send({
+                message: "Unauthorized access",
+            });
+        }
+
+        const token = authHeader.split(" ")[1];
+
+        if (!token) {
+            return res.status(401).send({
+                message: "Token not found",
+            });
+        }
+
+        const { payload } = await jwtVerify(token, JWKS);
+
+        req.user = payload;
+
+        console.log(payload, "payload");
+
+        next();
+    } catch (error) {
+        console.error(error);
+
+        return res.status(401).send({
+            message: "Invalid or expired token",
+        });
+    }
+};
 
 
 async function run() {
@@ -73,7 +113,7 @@ async function run() {
 
         const { ObjectId } = require("mongodb");
 
-        app.get("/rooms/:id", async (req, res) => {
+        app.get("/rooms/:id", verifyToken, async (req, res) => {
             try {
                 const id = req.params.id;
 
