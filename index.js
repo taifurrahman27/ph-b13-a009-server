@@ -51,8 +51,6 @@ const verifyToken = async (req, res, next) => {
 
         req.user = payload;
 
-        console.log(payload, "payload");
-
         next();
     } catch (error) {
         console.error(error);
@@ -113,7 +111,7 @@ async function run() {
 
         const { ObjectId } = require("mongodb");
 
-        app.get("/rooms/:id", verifyToken, async (req, res) => {
+        app.get("/rooms/:id", async (req, res) => {
             try {
                 const id = req.params.id;
 
@@ -136,7 +134,7 @@ async function run() {
         });
 
 
-        app.post("/rooms", async (req, res) => {
+        app.post("/rooms", verifyToken, async (req, res) => {
             try {
                 const roomData = req.body;
 
@@ -243,7 +241,7 @@ async function run() {
         });
 
 
-        app.delete("/rooms/:id", async (req, res) => {
+        app.delete("/rooms/:id", verifyToken, async (req, res) => {
             try {
                 const { id } = req.params;
 
@@ -307,8 +305,34 @@ async function run() {
 
 
 
+        app.get("/my-listings", verifyToken, async (req, res) => {
+            try {
+                const userId = req.user.sub;
 
-        app.post("/bookings", async (req, res) => {
+                const rooms = await roomCollection
+                    .find({ userId })
+                    .sort({ createdAt: -1 })
+                    .toArray();
+
+                res.status(200).json({
+                    success: true,
+                    data: rooms,
+                });
+
+            } catch (error) {
+                console.error(error);
+
+                res.status(500).json({
+                    success: false,
+                    message: "Failed to fetch listings",
+                });
+            }
+        });
+
+
+
+
+        app.post("/bookings", verifyToken, async (req, res) => {
             try {
                 const {
                     userId,
@@ -392,7 +416,7 @@ async function run() {
         });
 
 
-        app.patch("/bookings/:id/cancel", async (req, res) => {
+        app.patch("/bookings/:id/cancel", verifyToken, async (req, res) => {
             try {
                 const { id } = req.params;
 
