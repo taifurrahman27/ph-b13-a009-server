@@ -75,18 +75,30 @@ async function run() {
 
         app.get("/rooms", async (req, res) => {
             try {
+                const { amenities } = req.query;
+
+                let query = {};
+
+                if (amenities) {
+                    const amenityArray = amenities
+                        .split(",")
+                        .map(item => item.trim());
+
+                    query.amenities = {
+                        $all: amenityArray,
+                    };
+                }
+
                 const rooms = await roomCollection
-                    .find()
+                    .find(query)
                     .sort({ createdAt: -1 })
                     .toArray();
 
-                res.status(200).json(rooms);
-            } catch (error) {
-                console.error(error);
+                res.send(rooms);
 
-                res.status(500).json({
-                    success: false,
-                    message: "Failed to fetch rooms.",
+            } catch (error) {
+                res.status(500).send({
+                    message: "Failed to fetch rooms",
                 });
             }
         });
