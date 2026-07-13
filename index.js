@@ -123,7 +123,7 @@ async function run() {
 
         const { ObjectId } = require("mongodb");
 
-        app.get("/rooms/:id", async (req, res) => {
+        app.get("/rooms/:id", verifyToken, async (req, res) => {
             try {
                 const id = req.params.id;
 
